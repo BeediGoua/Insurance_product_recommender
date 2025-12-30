@@ -1,0 +1,39 @@
+/* Main container */
+.main {
+    background-color: #f8f9fa;
+    font-family: "Source Sans Pro", sans-serif;
+}
+
+/* Kpi Cards */
+div.css-1r6slb0.e1tzin5v2 {
+    background-color: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+h1 {
+    color: #2c3e50;
+    font-weight: 700;
+}
+
+h2, h3 {
+    color: #34495e;
+}
+
+/* Metrics Value */
+div[data-testid="stMetricValue"] {
+    font-size: 2rem !important;
+    color: #27ae60;
+}
+
+/* Success/Error boxes */
+div.stSuccess {
+    background-color: #d4edda;
+    border-left-color: #28a745;
+}
+div.stError {
+    background-color: #f8d7da;
+    border-left-color: #dc3545;
+}
