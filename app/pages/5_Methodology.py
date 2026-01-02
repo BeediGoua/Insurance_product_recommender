@@ -232,3 +232,7 @@ with tab4:
     2.  **Analyze Seasonality**: Check the 'Operational Rhythm' chart. If May is the peak month, prepare staffing in April.
     3.  **Branch Strategy**: Use the Quadrant Analysis to identify which branches need training (Low Quality) vs which need volume support (Low Volume).
     """)
+
+st.markdown("---")
+st.caption("Zimnat Insurance AI | **Goua Beedi** | [LinkedIn](https://www.linkedin.com/in/goua-beedi-henri-a152bb1b2/) | [GitHub](https://github.com/BeediGoua) | [Portfolio](https://beedigoua.github.io/)")
+

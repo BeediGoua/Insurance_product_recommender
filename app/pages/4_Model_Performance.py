@@ -137,4 +137,9 @@ with col_ai:
     )
     fig_feat.update_layout(height=400, margin=dict(l=0, r=0, t=30, b=0))
     st.plotly_chart(fig_feat, use_container_width=True)
+    st.plotly_chart(fig_feat, use_container_width=True)
     st.caption("The AI creates groups based on these profile attributes, creating 'Personalized' segments.")
+
+st.markdown("---")
+st.caption("Zimnat Insurance AI | **Goua Beedi** | [LinkedIn](https://www.linkedin.com/in/goua-beedi-henri-a152bb1b2/) | [GitHub](https://github.com/BeediGoua) | [Portfolio](https://beedigoua.github.io/)")
+

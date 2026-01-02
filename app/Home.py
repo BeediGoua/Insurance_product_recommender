@@ -247,4 +247,4 @@ with nav4:
         st.switch_page("pages/5_Methodology.py")
 
 st.markdown("---")
-st.caption("Zimnat Insurance AI | Version 2.0 | Validated for Production Use")
+st.caption("Zimnat Insurance AI | **Goua Beedi** | [LinkedIn](https://www.linkedin.com/in/goua-beedi-henri-a152bb1b2/) | [GitHub](https://github.com/BeediGoua) | [Portfolio](https://beedigoua.github.io/)")

@@ -212,4 +212,5 @@ with c2:
     fig_quad.add_vline(x=median_vol, line_dash="dash", line_color="grey")
     fig_quad.add_hline(y=median_qual, line_dash="dash", line_color="grey")
     fig_quad.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig_quad, use_container_width=True)
+st.markdown("---")
+st.caption("Zimnat Insurance AI | **Goua Beedi** | [LinkedIn](https://www.linkedin.com/in/goua-beedi-henri-a152bb1b2/) | [GitHub](https://github.com/BeediGoua) | [Portfolio](https://beedigoua.github.io/)")

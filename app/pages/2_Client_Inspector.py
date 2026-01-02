@@ -191,3 +191,7 @@ if client_id:
                     
     else:
         st.error("Client not found.")
+
+st.markdown("---")
+st.caption("Zimnat Insurance AI | **Goua Beedi** | [LinkedIn](https://www.linkedin.com/in/goua-beedi-henri-a152bb1b2/) | [GitHub](https://github.com/BeediGoua) | [Portfolio](https://beedigoua.github.io/)")
+

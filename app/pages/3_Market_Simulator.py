@@ -192,3 +192,7 @@ with c_right:
                 st.success(f"**Consensus:** Both models recommend **{top_h}**.")
             else:
                 st.info(f"**Refinement:** The Statistical model suggests **{top_b}**, but the AI (taking into account Age {age} & Status {status}) prioritizes **{top_h}**.")
+
+st.markdown("---")
+st.caption("Zimnat Insurance AI | **Goua Beedi** | [LinkedIn](https://www.linkedin.com/in/goua-beedi-henri-a152bb1b2/) | [GitHub](https://github.com/BeediGoua) | [Portfolio](https://beedigoua.github.io/)")
+
