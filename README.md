@@ -1,84 +1,145 @@
-# Recommandation d’assurance : proposer le bon produit au bon client
+# Système de Recommandation d'Assurance (Zimnat)
 
-## 1) De quoi parle ce projet
+**Une approche Hybride (IA + Règles Statistiques) pour l'optimisation du Cross-Sell.**
 
-Ce projet vise à construire un système de recommandation pour une assurance : pour chaque client, nous voulons identifier **quel produit a le plus de sens à proposer**, et produire un **Top-K** (ex. 1, 3 ou 5 produits) utilisable par une équipe CRM/marketing.
-
-L’idée n’est pas de faire “un modèle de compétition”, mais un outil qui aide à prendre une décision concrète : **qui contacter** et **quoi proposer**.
-
----
-
-## 2) Pourquoi ce projet existe (le besoin réel)
-
-Dans une assurance, contacter tous les clients coûte cher et donne souvent de mauvais résultats.
-En plus, proposer un produit que le client possède déjà est inutile et dégrade la relation.
-
-Le besoin est donc simple :
-
-* mieux cibler (contacter moins de personnes, mais les bonnes),
-* mieux personnaliser (proposer le produit le plus pertinent),
-* et **faire confiance au score** (si on dit 0,8, ça doit vraiment signifier “forte probabilité”).
+![Status](https://img.shields.io/badge/Status-Production-green)
+![Tech](https://img.shields.io/badge/Tech-Python%20|%20CatBoost%20|%20Streamlit-blue)
 
 ---
 
-## 3) Ce qu’on veut obtenir à la fin (résultat concret)
+## 1. Contexte Métier & Enjeux
 
-Pour chaque client, le système doit fournir :
+### Le Client : Zimnat Group 🇿🇼
+Zimnat est un acteur majeur des services financiers au Zimbabwe, structuré autour de plusieurs pôles stratégiques :
+*   **Assurance** : Vie (Life), Non-Vie (Motor, Home), Santé.
+*   **Finance** : Microfinance, Gestion de Patrimoine (Wealth Management).
 
-1. un classement des produits recommandés (Top-K),
-2. un score de confiance (probabilité) lisible,
-3. une règle simple d’action (ex. “contacter seulement les clients les plus actionnables”).
+### Le Besoin Business (Pourquoi ce projet ?)
+Dans l'assurance, la relation client est précieuse. Contacter un client pour lui proposer un produit qu'il possède déjà est une erreur coûteuse (perte de temps agent, frustration client).
+L'objectif est de transformer la démarche commerciale : **passer du "Mass Marketing" au "Precision Marketing".**
 
----
-
-## 4) Ce que les données permettent réellement
-
-Les données décrivent :
-
-* le profil du client (quelques informations socio-démographiques et des codes),
-* les produits déjà détenus par le client (21 produits, indiqués par 0/1).
-
-Le jeu est construit de façon particulière : dans les données de test, **un produit réellement détenu a été masqué**.
-Le but est donc d’apprendre la logique suivante :
-
-> “vu le profil du client et les autres produits qu’il possède, quel est le produit le plus probable qui manque ?”
-
-C’est une situation proche d’un cas d’usage réel de recommandation : on apprend des **associations** entre produits et profils pour proposer le produit le plus pertinent.
+**Les Enjeux Stratégiques :**
+1.  **Augmentation du Cross-Sell** : Un client multi-équipé (Auto + Maison + Vie) est plus fidèle et plus rentable (LTV élevée).
+2.  **Efficacité Opérationnelle** : Fournir aux agents une liste de "Warm Leads" (clients ayant un besoin probabiliste fort) plutôt que d'appeler au hasard.
+3.  **Réduction du Churn** : Proposer le bon produit au bon moment renforce la confiance.
 
 ---
 
-## 5) En quoi ce projet est différent des projets classiques
+## 2. Le Challenge Technique (Zindi)
 
-Beaucoup de projets se limitent à “obtenir un bon score” sur une métrique et à s’arrêter là.
+Ce projet répond au challenge **"Zimnat Insurance Recommendation"** (exposé sur Zindi).
 
-Ici, nous voulons aller plus loin :
+### La Problématique "Snapshot"
+Contrairement aux sites e-commerce classiques (Amazon/Netflix), nous n'avons pas l'historique temporel des clics ou des achats.
+Nous disposons uniquement d'une **photo à l'instant T** du portefeuille client.
+> *Question : "Vu que ce client a Profil X et possède déjà {A, B}, quel est le produit C qu'il est le plus susceptible de vouloir ?"*
 
-* produire un Top-K utilisable (pas juste une prédiction),
-* garantir qu’on ne recommande pas un produit déjà détenu,
-* rendre les scores **fiables** pour que la recommandation serve vraiment à décider qui contacter,
-* évaluer l’impact de la recommandation comme une vraie campagne (priorisation, budget, top-p%).
+### La Solution : Compléter le Puzzle
+C'est un problème de **Pattern Completion**. Le modèle doit apprendre la "grammaire" des produits d'assurance (ex: "On prend rarement une Assurance Retraite avant d'avoir une Assurance Vie").
 
----
-
-## 6) Limites (honnêtes) dès le départ
-
-Ces données ne permettent pas de dire :
-
-* “le prochain produit acheté dans le temps” (il n’y a pas d’historique chronologique d’achats).
-
-Elles permettent de construire :
-
-* un moteur de recommandation basé sur la **compatibilité** (produits qui vont ensemble) et le profil client,
-  ce qui est déjà très utile en CRM.
+```mermaid
+graph LR
+    A[Profil Client] --> M(Modèle IA)
+    B[Portefeuille Actuel] --> M
+    M --> P{Prédiction}
+    P -->|Score 95%| R1[Produit Manquant A]
+    P -->|Score 80%| R2[Produit Manquant B]
+```
 
 ---
 
-## 7) À qui ce projet peut servir
+## 3. La Solution : Moteur Hybride ("Dual Engine")
 
-* Équipe marketing / CRM : prioriser les clients et personnaliser les campagnes.
-* Analyste data : comprendre les associations entre produits et segments clients.
-* Produit / business : simuler une stratégie “contacter top-p%” avec des scores fiables.
+Pour garantir à la fois la performance et la fiabilité, nous avons conçu une architecture à deux têtes.
+
+### Architecture du Système
+
+```mermaid
+flowchart TB
+    Input[Client Data] --> Stats[Moteur 1: Baseline Statistique]
+    Input --> AI[Moteur 2: CatBoost IA]
+    
+    Stats -- "Mémoire Collective" --> Hybrid((DÉCISION))
+    AI -- "Intelligence Contextuelle" --> Hybrid
+    
+    Hybrid -- "Weighted Avg" --> Final[Score Brut]
+    Final --> Rules{Filtre Anti-Cheat}
+    Rules -- "Si déjà possédé" --> Reject[Score = -Inf]
+    Rules -- "Si nouveau" --> TopK[Top-5 Recommendations]
+```
+
+### Moteur 1 : La Mémoire (Baseline Statistique)
+*   **Approche** : Probabilités Conditionnelles (Bayésien).
+*   **Logique** : *"80% des clients qui ont une assurance Auto ont aussi une assurance Habitation."*
+*   **Rôle** : Assure la cohérence de base et la robustesse (ne se trompe jamais sur les grandes tendances).
+
+### Moteur 2 : L'Intelligence (CatBoost)
+*   **Approche** : Gradient Boosting sur Arbres de Décision.
+*   **Logique** : *"Ce client est jeune, vit en zone urbaine, et a un revenu élevé -> Il a besoin d'une protection Électronique, même si ce n'est pas le produit le plus populaire."*
+*   **Rôle** : Apporte la personnalisation fine et détecte les signaux faibles.
+
+### Sécurité "Anti-Cheat"
+Une règle métier stricte vient nettoyer la sortie : **Le système ne recommandera JAMAIS un produit déjà détenu.** Cela garantit zéro faux pas commercial.
 
 ---
 
-Si tu veux, prochaine étape (toujours simple, sans code) : je propose une section “Comment évaluer si ça marche ?” expliquée en langage non-tech (Top-K, fiabilité du score, impact campagne), pour que n’importe qui comprenne comment on juge la réussite du projet.
+## 4. L'Application Streamlit : Guide des Modules
+
+L'outil est livré sous forme d'une application Web interactive (`app/Home.py`) divisée en 5 modules, conçus pour différents utilisateurs.
+
+### 1. Home (Tableau de Bord Exécutif)
+*   **Pour qui ?** : Management / Parties Prenantes.
+*   **Quoi ?** : Vue d'ensemble de la performance (KPIs comme le Hit@1), contexte du projet, et proposition de valeur.
+
+### 2. Business Insights (Stratégie)
+*   **Pour qui ?** : Analystes Marketing.
+*   **Fonction** : Comprendre le marché.
+    *   *Saisonnalité* : Quand vend-on le plus ?
+    *   *Segmentation* : Qui sont nos clients VIP ("Sleeping Giants") ?
+    *   *Performance* : Quelle branche vend le mieux ?
+
+### 3. Client Inspector (Terrain)
+*   **Pour qui ?** : Agents d'Assurance.
+*   **Fonction** : Préparer un rendez-vous client.
+    *   Entrez un ID client -> Obtenez son Top-3 produits.
+    *   Comprenez **POURQUOI** (ex: "Recommandé car Age > 40 et Occupation = Enseignant").
+
+### 4. Market Simulator (Laboratoire)
+*   **Pour qui ?** : Product Owners.
+*   **Fonction** : Tester des hypothèses ("What-If").
+    *   *"Si notre clientèle rajeunit de 10 ans, quels produits vont monter ?"*
+    *   Permet d'ajuster l'offre avant même de lancer une campagne.
+
+### 5. Methodology (Transparence)
+*   **Pour qui ?** : Data Scientists / Auditeurs.
+*   **Fonction** : Documentation technique.
+    *   Détail du protocole "Hide and Seek" (Leave-One-Out) utilisé pour valider le modèle sans données futures.
+
+---
+
+## 5. Installation & Démarrage
+
+### Pré-requis Technique
+*   Python 3.8+
+*   Pip
+
+### Installation Rapide
+```bash
+# 1. Cloner le dépôt
+git clone <url-du-repo>
+cd insurance_recommender
+
+# 2. Installer les dépendances
+pip install -r requirements.txt
+```
+
+### Lancer l'Application
+```bash
+streamlit run app/Home.py
+```
+Une fois lancé, votre navigateur s'ouvrira automatiquement sur : `http://localhost:8501`.
+
+---
+
+**Auteur** : Goua Beedi
+

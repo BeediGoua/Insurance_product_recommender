@@ -107,7 +107,14 @@ def prepare_input_for_catboost(user_features, owned_products, model_feature_name
             elif feature == 'age':
                 final_dict[feature] = 40
             else:
-                final_dict[feature] = "unknown" # Categorical fallback
+                # SAFE FALLBACK
+                # CatBoost crashes if numeric feature gets "unknown"
+                # We assume features ending in 'code' or specific categories are strings
+                if feature in ['sex', 'marital_status', 'branch_code', 'occupation_code', 'occupation_category_code']:
+                    final_dict[feature] = "unknown"
+                else:
+                    # For anything else (likely numeric or product), use 0 or safe default
+                    final_dict[feature] = 0
 
     return pd.DataFrame([final_dict])
 
