@@ -1,6 +1,6 @@
 # Système de Recommandation d'Assurance (Zimnat)
 
-**Une approche Hybride (IA + Règles Statistiques) pour l'optimisation du Cross-Sell.**
+**Une approche Hybride (Modèle de Machine Learning + Règles Statistiques) pour l'optimisation du Cross-Sell.**
 
 ![Status](https://img.shields.io/badge/Status-Production-green)
 ![Tech](https://img.shields.io/badge/Tech-Python%20|%20CatBoost%20|%20Streamlit-blue)
