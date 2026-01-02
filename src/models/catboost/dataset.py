@@ -87,6 +87,12 @@ class CatboostDatasetBuilder:
             y_rows.append(int(hidden_idx))
             
         X_out = pd.DataFrame(X_rows)
+
+        # Retrait explicite des colonnes non-features (ID, date) qui font planter CatBoost
+        # si elles ne sont pas déclarées dans cat_features
+        cols_to_drop = ["ID", "join_date"]
+        X_out.drop(columns=[c for c in cols_to_drop if c in X_out.columns], inplace=True, errors="ignore")
+
         y_out = pd.Series(y_rows, name='target')
         
         # S'assurer que les colonnes sont dans le bon ordre (profil + produits)
