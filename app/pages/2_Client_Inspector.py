@@ -167,7 +167,7 @@ if client_id:
                 if not recs_hybrid.empty:
                     st.dataframe(recs_hybrid.rename("Score"), height=200)
                     top_c = recs_hybrid.index[0]
-                    st.success(f"Top Pick: **{top_c}**")
+                    st.markdown(f'<div class="top-pick-card">Top Pick: <b>{top_c}</b></div>', unsafe_allow_html=True)
                     
                     # DYNAMIC EXPLANATION
                     with st.expander("Explanation (Hybrid)"):

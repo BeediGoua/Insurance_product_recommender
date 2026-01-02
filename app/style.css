@@ -1,39 +1,108 @@
-/* Main container */
-.main {
-    background-color: #f8f9fa;
-    font-family: "Source Sans Pro", sans-serif;
+/* Global Animation Styles */
+
+/* 1. Metric Cards (KPIs) - Zoom Effect */
+div[data-testid="stMetric"] {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Kpi Cards */
-div.css-1r6slb0.e1tzin5v2 {
-    background-color: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 10px;
-    padding: 20px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+div[data-testid="stMetric"]:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: #B3E5FC;
+    /* Light Blue Highlight */
 }
 
-h1 {
-    color: #2c3e50;
-    font-weight: 700;
+/* 2. Insight Boxes - Subtle Pulse */
+@keyframes pulse-green {
+    0% {
+        border-left-color: #2E7D32;
+    }
+
+    50% {
+        border-left-color: #66BB6A;
+    }
+
+    100% {
+        border-left-color: #2E7D32;
+    }
 }
 
-h2, h3 {
-    color: #34495e;
+.insight-box {
+    animation: pulse-green 3s infinite;
+    transition: background-color 0.3s;
 }
 
-/* Metrics Value */
-div[data-testid="stMetricValue"] {
-    font-size: 2rem !important;
-    color: #27ae60;
+.insight-box:hover {
+    background-color: #E8F5E9;
+    /* Slightly darker green on hover */
 }
 
-/* Success/Error boxes */
-div.stSuccess {
-    background-color: #d4edda;
-    border-left-color: #28a745;
+/* 3. Golden Glow for Recommendations */
+@keyframes glow-gold {
+    0% {
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+    }
+
+    50% {
+        box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.2);
+    }
 }
-div.stError {
-    background-color: #f8d7da;
-    border-left-color: #dc3545;
+
+.top-pick-card {
+    border: 2px solid #FFD700;
+    border-radius: 8px;
+    padding: 10px;
+    animation: glow-gold 2s infinite;
+    background-color: #FFFDE7;
+}
+
+/* 4. Chart Containers */
+.stPlotlyChart {
+    border-radius: 8px;
+    transition: box-shadow 0.3s ease;
+}
+
+.stPlotlyChart:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 5. Buttons (Scenario Selectors) */
+div.stButton>button {
+    transition: all 0.2s;
+    border-radius: 20px;
+}
+
+div.stButton>button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+div.stButton>button:active {
+    transform: translateY(1px);
+    box-shadow: none;
+}
+
+/* 6. Documentation Boxes */
+.doc-box {
+    background-color: #F5F5F5;
+    border-left: 5px solid #0D47A1;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.doc-box:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    background-color: #E3F2FD;
 }

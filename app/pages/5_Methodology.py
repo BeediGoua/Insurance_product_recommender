@@ -11,26 +11,9 @@ import streamlit as st
 st.set_page_config(layout="wide", page_title="Documentation - Zimnat IA")
 
 # --- CSS PRO ---
-st.markdown("""
-<style>
-    h1, h2, h3 { color: #0D47A1; }
-    .doc-box {
-        background-color: #F5F5F5;
-        border-left: 5px solid #0D47A1;
-        padding: 15px;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    .math-box {
-        background-color: #FFFFFF;
-        border: 1px solid #E0E0E0;
-        padding: 15px;
-        border-radius: 5px;
-        text-align: center;
-        margin: 20px 0;
-    }
-</style>
-""", unsafe_allow_html=True)
+# --- CSS LOADING ---
+with open("app/style.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 st.title("Technical Documentation")
 st.markdown("**Zimnat Expert System**: A Hybrid Recommendation Engine combining Statistical Wisdom and Machine Learning.")
@@ -47,8 +30,12 @@ with tab1:
 
     with col1:
         st.subheader("A. The Statistical Brain (Baseline)")
-        st.markdown("**Philosophy**: *\"What do people usually buy together?\"*")
-        st.markdown("Based on **Conditional Probabilities**, specifically weighted by support to avoid noise.")
+        st.markdown("""
+        <div class="doc-box">
+            <p><strong>Philosophy</strong>: <em>"What do people usually buy together?"</em></p>
+            <p>Based on <strong>Conditional Probabilities</strong>, specifically weighted by support to avoid noise.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("### The Formula")
         st.latex(r'''
@@ -75,8 +62,12 @@ with tab1:
 
     with col2:
         st.subheader("B. The AI Brain (CatBoost)")
-        st.markdown("**Philosophy**: *\"Who is this person?\"* (Contextual Intelligence)")
-        st.markdown("Unlike the Baseline which looks at *Products*, the AI looks at the *User*. It learns non-linear interactions between Demographics and Portfolio.")
+        st.markdown("""
+        <div class="doc-box">
+            <p><strong>Philosophy</strong>: <em>"Who is this person?"</em> (Contextual Intelligence)</p>
+            <p>Unlike the Baseline which looks at <em>Products</em>, the AI looks at the <em>User</em>. It learns non-linear interactions between Demographics and Portfolio.</p>
+        </div>
+        """, unsafe_allow_html=True)
         
         st.markdown("### 1. Problem Formulation: Multiclass")
         st.markdown("We treat recommendation as a **Multiclass Classification** problem with 21 classes (one for each product).")

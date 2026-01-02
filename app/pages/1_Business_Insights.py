@@ -15,48 +15,9 @@ from src.config import ARTIFACTS_DIR, BASELINE_VERSION
 
 st.set_page_config(layout="wide", page_title="Business Analytics - Zimnat")
 
-# --- CSS PRO ---
-st.markdown("""
-<style>
-    div[data-testid="stMetric"] { 
-        background-color: #FAFAFA; 
-        border-radius: 8px; 
-        border-right: 5px solid #1565C0; /* Blue */
-        padding: 15px; 
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-    }
-    h3 { 
-        color: #003c8f; /* Dark Blue */
-        margin-top: 30px; 
-        border-bottom: 2px solid #B0BEC5; 
-        padding-bottom: 5px;
-    }
-    .stPlotlyChart {
-        background-color: #FFFFFF;
-        border-radius: 10px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        padding: 10px;
-    }
-    .insight-box {
-        background-color: #F1F8E9; /* Light Green Tint for Professional Insight */
-        border-left: 5px solid #2E7D32;
-        padding: 12px 18px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-        color: #1B5E20;
-        font-family: 'Segoe UI', sans-serif;
-        font-size: 0.95rem;
-    }
-    .insight-title {
-        font-weight: bold;
-        text-transform: uppercase;
-        font-size: 0.8rem;
-        color: #2E7D32;
-        display: block;
-        margin-bottom: 4px;
-    }
-</style>
-""", unsafe_allow_html=True)
+# --- CSS LOADING ---
+with open("app/style.css") as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # --- ADVANCED DATA LOADER ---
 @st.cache_data
