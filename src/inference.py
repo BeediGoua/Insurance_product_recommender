@@ -57,23 +57,66 @@ def load_hybrid_model():
     
     return hybrid, alpha
 
+def prepare_input_for_catboost(user_features, owned_products, model_feature_names, product_cols):
+    """
+    Robust input preparation for CatBoost:
+    1. Calculates 'age' from 'birth_year' if missing (Critical).
+    2. Ensures types (int for years, string for categories).
+    3. Prevents Data Leakage (removes product columns from user_features).
+    4. Sets 1/0 for Owned/Not-Owned products in the context.
+    """
+    row_dict = {}
+    
+    # A. Clean User Features (Remove Leakage & Fix Types)
+    for k, v in user_features.items():
+        # Skip if it is a product column (Leakage protection)
+        if k in product_cols:
+            continue
+            
+        # Cast specific numeric fields
+        if k in ['join_year', 'birth_year']:
+            try:
+                row_dict[k] = int(v)
+            except:
+                row_dict[k] = 2017 # Default
+        else:
+            row_dict[k] = v
+
+    # B. Feature Engineering (Missing 'age')
+    if 'age' not in row_dict:
+        if 'birth_year' in row_dict:
+            row_dict['age'] = 2020 - row_dict['birth_year']
+        else:
+            row_dict['age'] = 35 # Default fallback
+
+    # C. Build Final Dict matching Model Expectations
+    final_dict = {}
+    for feature in model_feature_names:
+        # 1. Product Context (One-Hot)
+        if feature in product_cols:
+            final_dict[feature] = 1 if feature in owned_products else 0
+            
+        # 2. Known User Feature
+        elif feature in row_dict:
+            final_dict[feature] = row_dict[feature]
+            
+        # 3. Missing/Unknown
+        else:
+            if feature == 'join_year':
+                final_dict[feature] = 2017
+            elif feature == 'age':
+                final_dict[feature] = 40
+            else:
+                final_dict[feature] = "unknown" # Categorical fallback
+
+    return pd.DataFrame([final_dict])
+
 def get_recommendations(model_type, context_data, topk=5, alpha_override=None):
     """
     Fonction unifiée pour prédire.
-    
-    Args:
-        model_type (str): "Baseline" ou "CatBoost"
-        context_data (dict): 
-            - 'owned_products': list of strings
-            - 'user_features': dict (age, sex, etc.) -> ONLY for CatBoost
-        topk (int): Number of recs
-        alpha_override (float): Force a specific alpha (0.0 to 1.0). If None, use optimized.
-        
-    Returns:
-        pd.Series: Top-K items with scores
     """
     
-    # --- A. BASELINE STRATEGY ---
+    # --- A. BASELINE STRATEGY (Pure Stats) ---
     if model_type.startswith("Baseline"):
         artifact = load_baseline()
         if not artifact:
@@ -82,73 +125,49 @@ def get_recommendations(model_type, context_data, topk=5, alpha_override=None):
         owned = context_data.get("owned_products", [])
         return recommend_from_selection(artifact, owned, topk=topk)
 
-    # --- B. CATBOOST STRATEGY ---
+    # --- B. CATBOOST STRATEGY (Hybrid AI) ---
     elif model_type.startswith("CatBoost"):
         res = load_hybrid_model()
         if not res:
             return pd.Series()
         
         hybrid_model, best_alpha = res
-        
-        # Override Alpha if requested
         final_alpha = alpha_override if alpha_override is not None else best_alpha
         
-        # Prepare Input DataFrame for CatBoost
-        # 1. Create a single row DataFrame
+        # Inputs
         user_features = context_data.get("user_features", {})
-        
-        # We assume user_features has keys matching columns (sex, age, etc.)
-        # We also need the Product Columns (One-Hot encoded in context)
         owned = context_data.get("owned_products", [])
         
-        # Create row
-        row_dict = user_features.copy()
-        
-        # Add Product Columns (0 or 1)
-        # We get the list of ALL features expected by the model
-        model_feature_names = hybrid_model.trainer.model.feature_names_
-        
-        # Fill row dict 
-        for col in model_feature_names:
-            if col in row_dict:
-                continue # Already set (e.g. age, sex)
-            elif col in owned:
-                row_dict[col] = 1 # Owns product
-            elif col in hybrid_model.baseline.product_cols:
-                row_dict[col] = 0 # Doesn't own product
-            elif col == "join_year":
-                # Special case: if 'join_year' is missing but needed
-                row_dict[col] = 2017 # Default
+        # Prepare Robust Input
+        try:
+            # Attempt to access feature names safely
+            if hasattr(hybrid_model.model, 'model'):
+                # Valid Trainer -> CatBoost structure
+                model_names = hybrid_model.model.model.feature_names_
+            elif hasattr(hybrid_model.model, 'feature_names_'):
+                 # Direct CatBoost model
+                model_names = hybrid_model.model.feature_names_
             else:
-                # Other missing feature? 
-                # If it's a categorical feature (in CAT_FEATURES), provide '?' or similar if missing
-                if col in CAT_FEATURES and col not in row_dict:
-                    row_dict[col] = "unknown"
-                pass
-                
-        # Convert to DataFrame
-        ctx_df = pd.DataFrame([row_dict])
+                 # Fallback / Error
+                 st.error(f"Structure Modèle Inconnue: {type(hybrid_model.model)}")
+                 return pd.Series()
+        except AttributeError as e:
+            st.error(f"Erreur d'attribut Modèle: {e}. (Try Clearing Switch Cache)")
+            return pd.Series()
+            
+        prod_cols = hybrid_model.baseline.product_cols
+        
+        ctx_df = prepare_input_for_catboost(user_features, owned, model_names, prod_cols)
         
         # Predict
         try:
-            probas = hybrid_model.predict_proba(ctx_df, alpha=final_alpha)[0] # Take first row
+            probas = hybrid_model.predict_proba(ctx_df, alpha=final_alpha)[0]
         except Exception as e:
             st.error(f"Erreur CatBoost: {e}")
             return pd.Series()
         
-        # Map to Series
-        product_cols = hybrid_model.baseline.product_cols
-        
-        # Safety check lengths
-        if len(probas) != len(product_cols):
-            # This can happen if alpha=0.0 (Pure CatBoost) or alpha=1.0 (Pure Baseline) 
-            # and shapes differ? No, HybridPredictor handles that.
-            st.warning(f"Mismatch scores/products: {len(probas)} vs {len(product_cols)}")
-            return pd.Series()
-            
-        scores = pd.Series(probas, index=product_cols)
-        
-        # Filter out owned products
+        # Map Scores
+        scores = pd.Series(probas, index=prod_cols)
         scores = scores.drop(owned, errors='ignore')
         
         return scores.nlargest(topk)

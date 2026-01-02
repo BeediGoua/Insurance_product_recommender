@@ -1,178 +1,194 @@
+import sys
+from pathlib import Path
+
+# Fix Path
+root_path = Path(__file__).resolve().parent.parent.parent
+if str(root_path) not in sys.path:
+    sys.path.append(str(root_path))
 
 import streamlit as st
 import pandas as pd
-import numpy as np
-from src.inference import load_baseline, get_recommendations
+import json
+from src.inference import get_recommendations, load_baseline
+from src.config import ARTIFACTS_DIR, BASELINE_VERSION
 
 st.set_page_config(page_title="Simulator - Zimnat", layout="wide")
 
-# Load CSS
+# --- CSS LOADING ---
 with open("app/style.css") as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
-# --- SIDEBAR MODEL SELECTION ---
-model_choice = st.sidebar.radio("Modèle", ["Baseline (Stats)", "CatBoost V1 (Hybrid)"])
-
-# Option de Comparaison (Uniquement pour CatBoost pour l'instant)
-show_comparison = False
-if model_choice.startswith("CatBoost"):
-    st.sidebar.markdown("---")
-    show_comparison = st.sidebar.checkbox("🧪 Mode Comparaison Avancée", value=False, help="Voir l'effet du paramètre Alpha (Mélange IA/Stats)")
-
-# Load Resources (Pre-fetch for product list)
+# --- LOAD RESOURCES ---
 baseline = load_baseline()
 if not baseline:
-    st.error("Baseline non trouvée. Lancez run_baseline.py")
+    st.error("Baseline not found.")
     st.stop()
-    
-# Get Product List
 all_products = baseline.product_cols
 
-st.title("Simulateur Interactif")
-st.markdown(f"**Modèle Actif : {model_choice}**")
-st.markdown("Construisez un panier et un profil. Le modèle mettra à jour ses recommandations en temps réel.")
+# Cache data for random picker
+@st.cache_resource
+def load_data():
+    return pd.read_parquet(ARTIFACTS_DIR / BASELINE_VERSION / "train_cleaned.parquet")
 
-col_left, col_right = st.columns([1, 1.5], gap="large")
+df_train = load_data()
 
-with col_left:
-    st.subheader("1. Panier Client")
-    st.caption("Sélectionnez les produits déjà détenus par ce client fictif.")
-    
-    owned = st.multiselect(
-        "Produits détenus :", 
-        all_products,
-        default=[],
-        placeholder="Ajoutez des produits..."
-    )
-    
-    st.info(f"Produits dans le panier : {len(owned)}")
-    
-    # --- PROFILE FORM (Only for CatBoost) ---
-    user_features = {}
-    if model_choice.startswith("CatBoost"):
-        st.subheader("2. Profil Client (Requis pour l'IA)")
-        with st.expander("Détails du Profil Client", expanded=True):
-            sex = st.selectbox("Sexe", ["M", "F"], index=0)
-            status = st.selectbox("Statut Marital", ["M", "U", "S", "W", "D", "P", "R", "f"], index=0)
-            age = st.slider("Âge", 18, 90, 35)
-            
-            # Robust Dummies for all CAT_FEATURES
-            user_features = {
-                "sex": sex,
-                "marital_status": status,
-                "age": age,
-                "birth_year": 2020 - age, 
-                "join_date": "2018-01-01", 
-                "join_year": 2018, # Feature engineered
-                
-                # Dummy values representing a "Standard" profile for technical fields we hide from UI
-                "branch_code": "74280b18",
-                "occupation_code": "2a7c15d9",
-                "occupation_category_code": "T4"
-            }
-            # st.caption("Note: Agence, Métier et Catégorie sont fixés à des valeurs standards pour cette simulation.")
-            
-    if owned:
-        st.success("Panier actif")
-    else:
-        st.warning("Panier vide. Ajoutez un produit pour voir les effets.")
+st.title("Interactive Simulator")
+st.markdown("Test the models by manually creating profiles or using predefined scenarios.")
 
-with col_right:
-    st.subheader("3. Recommandations (Temps Réel)")
+# --- SIDEBAR ---
+with st.sidebar:
+    st.header("Configuration")
+    alpha_input = st.slider("Alpha Parameter (Hybrid Weight)", 0.0, 1.0, 0.5, 0.1, help="0 = Pure AI, 1 = Pure Stats")
+
+# --- INITIALIZE SESSION STATE ---
+if "sim_age" not in st.session_state: st.session_state["sim_age"] = 30
+if "sim_sex" not in st.session_state: st.session_state["sim_sex"] = "M"
+if "sim_status" not in st.session_state: st.session_state["sim_status"] = "M"
+if "sim_products" not in st.session_state: st.session_state["sim_products"] = []
+
+# --- 1. SCENARIO SELECTOR ---
+st.subheader("1. Quick Scenarios & Real Data")
+st.markdown("Select a predefined profile OR load a **Real Client** from the database to start.")
+
+col_sc1, col_sc2, col_sc3, col_sc4, col_custom = st.columns(5)
+
+# --- A. PREDEFINED ---
+if col_sc1.button("Student (Young)"):
+    st.session_state["sim_age"] = 21
+    st.session_state["sim_sex"] = "M"
+    st.session_state["sim_status"] = "U"
+    st.session_state["sim_products"] = []
     
-    # Prepare Context
-    context = {
-        "owned_products": owned,
-        "user_features": user_features
-    }
+if col_sc2.button("Family (Mid-Life)"):
+    st.session_state["sim_age"] = 40
+    st.session_state["sim_sex"] = "F"
+    st.session_state["sim_status"] = "M"
+    st.session_state["sim_products"] = ["P5DA", "RIBP"] 
+
+# --- B. REAL DATA ---
+if col_custom.button("Real Client (Random)"):
+    # Pick random row
+    row = df_train.sample(1).iloc[0]
     
-    if not owned:
-        st.write("En attente de produits...")
-    else:
-        topk_slider = st.slider("Nombre de recommandations", 1, 10, 5)
+    # Calculate Age
+    age_val = row['age'] if pd.notnull(row['age']) else (2020 - row['birth_year'])
+    
+    # Extract Products
+    real_products = [c for c in all_products if row[c] == 1]
+    
+    st.session_state["sim_age"] = int(age_val)
+    st.session_state["sim_sex"] = row['sex']
+    st.session_state["sim_status"] = row['marital_status']
+    st.session_state["sim_products"] = real_products
+    st.toast(f"Loaded Client {row['ID']}")
+    
+if col_sc3.button("Senior VIP (Established)"):
+    st.session_state["sim_age"] = 68
+    st.session_state["sim_sex"] = "M"
+    st.session_state["sim_status"] = "M"
+    st.session_state["sim_products"] = ["P5DA", "RIBP", "8NN1", "7POT"]
+    
+if col_sc4.button("Clear Form"):
+    st.session_state["sim_age"] = 30
+    st.session_state["sim_sex"] = "F"
+    st.session_state["sim_status"] = "S"
+    st.session_state["sim_products"] = []
+
+# --- 2. BUILDER AR ---
+st.markdown("---")
+st.subheader("2. Client Profile Builder")
+
+c_left, c_right = st.columns([1, 1.5], gap="large")
+
+with c_left:
+    # --- IMPORT TOOL ---
+    with st.expander("Import from Database (Advanced Filters)"):
+        st.caption("Find a real client matching specific criteria.")
         
-        # --- MODE COMPARAISON ---
-        if show_comparison and model_choice.startswith("CatBoost"):
-            c1, c2, c3 = st.columns(3)
-            
-            # 1. Pure AI (Alpha=0)
-            with c1:
-                st.markdown("##### 🤖 IA Pure (α=0)")
-                st.caption("Profil uniquement")
-                recs_ai = get_recommendations("CatBoost", context, topk=topk_slider, alpha_override=0.0)
-                for p, s in recs_ai.items():
-                    st.progress(min(float(s), 1.0), text=f"**{p}** ({s:.2f})")
-            
-            # 2. Hybrid (Alpha=0.5)
-            with c2:
-                st.markdown("##### ⚖️ Hybride (α=0.5)")
-                st.caption("Mélange 50/50")
-                recs_mix = get_recommendations("CatBoost", context, topk=topk_slider, alpha_override=0.5)
-                for p, s in recs_mix.items():
-                    st.progress(min(float(s), 1.0), text=f"**{p}** ({s:.2f})")
-            
-            # 3. Stats (Alpha=1.0)
-            with c3:
-                st.markdown("##### 📊 Stats (α=1.0)")
-                st.caption("Panier uniquement")
-                recs_stats = get_recommendations("CatBoost", context, topk=topk_slider, alpha_override=1.0)
-                for p, s in recs_stats.items():
-                    st.progress(min(float(s), 1.0), text=f"**{p}** ({s:.2f})")
-                    
-            st.divider()
-            st.info("Observez comment l'IA (gauche) peut proposer des produits différents des Stats (droite) pour des profils atypiques.")
+        target_size_sim = st.slider("Target Basket Size", 0, 10, 2, key="sim_target_size")
+        
+        if st.button("Fetch Random Match"):
+             prod_cols = baseline.product_cols
+             basket_sizes = df_train[prod_cols].sum(axis=1)
+             
+             # 1. Exact vs Fuzzy search (Same logic as Inspector)
+             valid = df_train[basket_sizes == target_size_sim]
+             if valid.empty:
+                  valid = df_train[(basket_sizes >= target_size_sim - 1) & (basket_sizes <= target_size_sim + 1)]
+                  if not valid.empty:
+                      st.toast("Exact match not found. Using fuzzy match (+/- 1).")
+             
+             if not valid.empty:
+                 row = valid.sample(1).iloc[0]
+                 
+                 # Extract & Set
+                 age_val = row['age'] if pd.notnull(row['age']) else (2020 - row['birth_year'])
+                 real_products = [c for c in all_products if row[c] == 1]
+                 
+                 st.session_state["sim_age"] = int(age_val)
+                 st.session_state["sim_sex"] = row['sex']
+                 st.session_state["sim_status"] = row['marital_status']
+                 st.session_state["sim_products"] = real_products
+                 
+                 st.toast(f"Imported Client {row['ID']} ({len(real_products)} products)!")
+                 st.rerun()
+             else:
+                 st.warning("No client found.")
 
-        # --- MODE STANDARD ---
-        else:
-            # Prediction Standard (Alpha optimisé par défaut)
-            recs = get_recommendations(model_choice, context, topk=topk_slider)
+    st.markdown("#### Input Parameters")
+    
+    # Defaults handled by session_state
+    
+    age = st.number_input("Age", 18, 100, st.session_state["sim_age"])
+    sex = st.selectbox("Sex", ["M", "F"], index=0 if st.session_state["sim_sex"]=="M" else 1)
+    status = st.selectbox("Marital Status", ["M", "U", "S", "W"], index=["M","U","S","W"].index(st.session_state["sim_status"]))
+    
+    st.markdown("#### Owned Products")
+    curr_prods = st.multiselect("Select Products", all_products, default=st.session_state["sim_products"])
+    
+    # Update Session State on Change (Implicit)
+
+with c_right:
+    st.markdown("### Prediction Engine")
+    
+    if st.button("Generate Recommendation", type="primary"):
+        
+        # 1. Prepare Data
+        user_features = {
+            "age": age,
+            "sex": sex,
+            "marital_status": status,
+            "join_year": 2018 # Default for simulation
+        }
+        
+        ctx_hybrid = {
+            "owned_products": curr_prods,
+            "user_features": user_features
+        }
+        
+        ctx_baseline = {"owned_products": curr_prods}
+        
+        # 2. Get Predictions
+        rec_base = get_recommendations("Baseline", ctx_baseline, topk=5)
+        rec_hybrid = get_recommendations("CatBoost", ctx_hybrid, topk=5, alpha_override=alpha_input)
+        
+        col_res1, col_res2 = st.columns(2)
+        
+        with col_res1:
+            st.info("Baseline (Stats)")
+            st.dataframe(rec_base, height=200)
             
-            if recs.empty:
-                st.warning("Pas de recommandation disponible.")
+        with col_res2:
+            st.success(f"Hybrid AI (Alpha={alpha_input})")
+            st.dataframe(rec_hybrid, height=200)
+            
+        # 3. INTERPRETATION
+        st.markdown("#### Interpretation")
+        if not rec_hybrid.empty and not rec_base.empty:
+            top_h = rec_hybrid.index[0]
+            top_b = rec_base.index[0]
+            
+            if top_h == top_b:
+                st.success(f"**Consensus:** Both models recommend **{top_h}**.")
             else:
-                st.markdown("##### Top Produits Suggérés")
-                for p, score in recs.items():
-                    c1_disp, c2_disp = st.columns([3, 1])
-                    c1_disp.progress(min(float(score), 1.0), text=f"**{p}**")
-                    c2_disp.caption(f"Score: {score:.4f}")
-                
-                # Explainability Block (Baseline Only)
-                if model_choice.startswith("Baseline"):
-                    st.divider()
-                    top_prod = recs.index[0]
-                    st.subheader(f"3. Pourquoi '{top_prod}' ? (Explication Stats)")
-                    
-                    artifact = baseline
-                    prod_map = {name: i for i, name in enumerate(artifact.product_cols)}
-                    t_idx = prod_map.get(top_prod)
-                    
-                    if t_idx is not None:
-                        input_indices = [prod_map.get(p) for p in owned if prod_map.get(p) is not None]
-                        if input_indices:
-                            supports = artifact.support_A[input_indices]
-                            total_support = supports.sum()
-                            weights = supports / total_support if total_support > 0 else np.ones(len(supports))/len(supports)
-                            
-                            explanation_data = []
-                            for i, p_name in enumerate(owned):
-                                if prod_map.get(p_name) is not None:
-                                    p_idx = prod_map.get(p_name)
-                                    w = weights[i]
-                                    prob = artifact.cond[p_idx, t_idx]
-                                    contribution = prob * w
-                                    explanation_data.append({
-                                        "Produit Source": p_name,
-                                        "Poids (Rareté)": w,
-                                        "Probabilité P(T|S)": prob,
-                                        "Contribution": contribution
-                                    })
-                            
-                            df_explain = pd.DataFrame(explanation_data).sort_values("Contribution", ascending=False)
-                            st.dataframe(
-                                df_explain.style.format("{:.2%}", subset=["Poids (Rareté)", "Probabilité P(T|S)", "Contribution"])
-                                                .background_gradient(cmap="Greens", subset=["Contribution"]),
-                                use_container_width=True
-                            )
-                elif not show_comparison:
-                     st.divider()
-                     st.info("Note : Le modèle Hybride utilise une combinaison complexe. Activez le mode Comparaison pour voir l'influence de l'IA vs Stats.")
+                st.info(f"**Refinement:** The Statistical model suggests **{top_b}**, but the AI (taking into account Age {age} & Status {status}) prioritizes **{top_h}**.")
