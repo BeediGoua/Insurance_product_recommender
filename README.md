@@ -9,20 +9,11 @@ Systeme d'aide a la decision en assurance pour recommander le bon produit au bon
 
 ### Contexte metier et enjeux
 
-Dans l'assurance, une mauvaise recommandation coute cher:
-- perte de temps pour les agents
-- opportunites ratees de cross-sell
-- frustration client
-- baisse de confiance dans l'outil
+Dans l'assurance, une mauvaise recommandation coute cher: perte de temps pour les agents, opportunites ratees de cross-sell, frustration client et baisse de confiance dans l'outil.
 
-Ce projet repond a un besoin concret:
-- passer d'une approche commerciale generale
-- a une approche ciblee, explicable et pilotable
+Ce projet repond a un besoin concret: passer d'une approche commerciale generale a une approche ciblee, explicable et pilotable.
 
-Notre ambition:
-- aider les equipes a savoir qui contacter
-- quel produit proposer
-- et avec quel niveau de confiance
+Notre ambition est simple: aider les equipes a savoir qui contacter, quel produit proposer et avec quel niveau de confiance.
 
 ## Pourquoi explorer ce projet
 
@@ -35,34 +26,36 @@ Ce repo montre une approche complete, de bout en bout:
 
 Si vous cherchez un projet ML applique au metier, avec une logique produit claire, vous etes au bon endroit.
 
-### Ce que fait le projet
+### Proposition de valeur
 
-Le systeme prend:
-- le profil client
-- les produits deja detenus
+Le systeme prend le profil client et les produits deja detenus, puis il renvoie un top de recommandations, un niveau de confiance, une explication et une trace d'audit.
 
-Puis il renvoie:
-- un top de recommandations
-- un niveau de confiance
-- une explication
-- une trace d'audit
+### Intuition produit
 
-### Comment ca marche
+L'idee est de completer intelligemment le portefeuille client.
+Par exemple, si un client a deja certains produits et un profil compatible, le systeme estime quels produits manquants ont le plus de sens.
+
+```mermaid
+graph LR
+    A[Profil Client] --> M(Modele IA)
+    B[Produits Deja Detenus] --> M
+    M --> P{Prediction}
+    P -->|Score eleve| R1[Produit recommande A]
+    P -->|Score moyen| R2[Produit recommande B]
+```
+
+### Fonctionnement en 5 etapes
 1. On lit le profil client et ses produits actuels.
 2. Le moteur hybride calcule les scores (statistique + IA).
 3. Les regles metier filtrent les produits non valides.
 4. Le systeme calcule un niveau de risque et de confiance.
 5. Le systeme retourne recommandations, explications et audit.
 
-### Impact attendu
+### Valeur business 
 
-Dans l'assurance, recommander un produit deja possede est une erreur.
-Ce projet aide a:
-- augmenter le cross-sell
-- reduire les erreurs de recommandation
-- ameliorer l'efficacite des agents
+Dans l'assurance, recommander un produit deja possede est une erreur. Ce projet aide a augmenter le cross-sell, reduire les erreurs de recommandation et ameliorer l'efficacite des agents.
 
-### Notre solution
+### Approche technique
 
 Le moteur combine:
 - baseline statistique
@@ -72,7 +65,7 @@ Le moteur combine:
 Regle cle:
 - ne jamais recommander un produit deja possede
 
-### Ce qui rend le systeme fiable
+### Garanties 
 
 - Regles metier appliquees apres le modele
 - Explications basees sur des donnees structurees
@@ -91,7 +84,7 @@ flowchart TB
     Audit --> Output[Top Recommandations]
 ```
 
-## Objectif business
+## Objectif 
 
 Passer d'une approche generale a une approche ciblee:
 - bon produit
@@ -112,10 +105,7 @@ Passer d'une approche generale a une approche ciblee:
 - Equipes data: ameliorer le modele et l'evaluation
 - Equipes produit: piloter les regles et la qualite des recommandations
 
-## Etat actuel
 
-Le systeme est fonctionnel et bien structure.
-Le point a renforcer en priorite est l'evaluation pour prouver la valeur business de facon solide.
 
 ## Documentation detaillee
 
