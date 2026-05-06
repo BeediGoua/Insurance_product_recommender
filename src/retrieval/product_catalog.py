@@ -1,22 +1,4 @@
-"""
-Load and access product metadata.
-
-The product catalog is stored as a CSV file under
-``data/product_knowledge/product_descriptions.csv``.  Each row should
-contain at minimum the following columns:
-
-* ``product_code`` – unique identifier (e.g. "Life", "Motor").
-* ``product_name`` – human friendly name.
-* ``description`` – marketing description of the product.
-* ``target_needs`` – comma separated list of needs this product
-  addresses.
-* ``typical_customer`` – short description of a typical buyer.
-* ``exclusions`` – optional notes on who should not buy this product.
-* ``business_notes`` – any additional information for internal use.
-
-If the file does not exist or cannot be read the returned DataFrame
-will be empty.
-"""
+"""Load and provide access to product metadata from the catalog file."""
 
 from __future__ import annotations
 

@@ -1,226 +1,591 @@
-# Système de Recommandation d'Assurance (Zimnat)
+# Insurance Decision AI
 
-**Une approche Hybride (Modèle de Machine Learning + Règles Statistiques) pour l'optimisation du Cross-Sell.**
+Systeme d'aide a la decision assurance combinant moteur hybride de recommandation, regles metier, explication, audit et orchestration agentique.
 
 ![Status](https://img.shields.io/badge/Status-Production-green)
-![Tech](https://img.shields.io/badge/Tech-Python%20|%20CatBoost%20|%20Streamlit-blue)
+![Tech](https://img.shields.io/badge/Tech-Python%20%7C%20CatBoost%20%7C%20Streamlit-blue)
 
 ---
 
-## 1. Contexte Métier & Enjeux
+## 1. Contexte Metier et Enjeux
 
-### Le Client : Zimnat Group 🇿🇼
-Zimnat est un acteur majeur des services financiers au Zimbabwe, structuré autour de plusieurs pôles stratégiques :
-*   **Assurance** : Vie (Life), Non-Vie (Motor, Home), Santé.
-*   **Finance** : Microfinance, Gestion de Patrimoine (Wealth Management).
+### Le client: Zimnat Group
 
-### Le Besoin Business (Pourquoi ce projet ?)
-Dans l'assurance, la relation client est précieuse. Contacter un client pour lui proposer un produit qu'il possède déjà est une erreur coûteuse (perte de temps agent, frustration client).
-L'objectif est de transformer la démarche commerciale : **passer du "Mass Marketing" au "Precision Marketing".**
+Zimnat est un acteur important des services financiers au Zimbabwe.
+Le groupe propose plusieurs types de produits:
 
-**Les Enjeux Stratégiques :**
-1.  **Augmentation du Cross-Sell** : Un client multi-équipé (Auto + Maison + Vie) est plus fidèle et plus rentable (LTV élevée).
-2.  **Efficacité Opérationnelle** : Fournir aux agents une liste de "Warm Leads" (clients ayant un besoin probabiliste fort) plutôt que d'appeler au hasard.
-3.  **Réduction du Churn** : Proposer le bon produit au bon moment renforce la confiance.
+- Assurance Vie
+- Assurance Automobile
+- Assurance Habitation
+- Assurance Sante
+- Services financiers complementaires
+
+Le projet vise a ameliorer la maniere dont les produits sont proposes aux clients existants.
+
+### Le besoin metier
+
+Dans une compagnie d'assurance, proposer un produit deja detenu par un client est une mauvaise experience:
+
+- perte de temps pour les agents
+- recommandations inutiles
+- frustration client
+- baisse de confiance dans le systeme
+
+L'objectif est donc de transformer la demarche commerciale:
+
+> passer d'une approche generale a une approche ciblee et personnalisee.
+
+Le systeme doit aider les equipes a identifier:
+
+- quels clients contacter
+- quels produits proposer
+- avec quel niveau de confiance
+
+### Les enjeux principaux
+
+#### Augmenter le cross-sell
+
+Un client possedant plusieurs produits est generalement:
+
+- plus fidele
+- plus rentable
+- plus engage
+
+#### Ameliorer l'efficacite commerciale
+
+Le systeme aide les agents a prioriser les clients ayant le plus fort potentiel.
+
+#### Reduire les erreurs commerciales
+
+Le systeme applique des regles empechant les recommandations incoherentes.
 
 ---
 
-## 2. Le Challenge Technique (Zindi)
+## 2. Le Defi Technique
 
-Ce projet répond au challenge **"Zimnat Insurance Recommendation"** (exposé sur Zindi).
+Le projet utilise des donnees contenant:
 
-### La Problématique "Snapshot"
-Contrairement aux sites e-commerce classiques (Amazon/Netflix), nous n'avons pas l'historique temporel des clics ou des achats.
-Nous disposons uniquement d'une **photo à l'instant T** du portefeuille client.
-> *Question : "Vu que ce client a Profil X et possède déjà {A, B}, quel est le produit C qu'il est le plus susceptible de vouloir ?"*
+- le profil client
+- les produits deja detenus
+- des informations demographiques et business
 
-### La Solution : Compléter le Puzzle
-C'est un problème de **Pattern Completion**. Le modèle doit apprendre la "grammaire" des produits d'assurance (ex: "On prend rarement une Assurance Retraite avant d'avoir une Assurance Vie").
+Le defi principal est le suivant:
+
+> A partir du profil d'un client et des produits qu'il possede deja, quel nouveau produit est le plus pertinent a recommander?
+
+Contrairement a certaines plateformes e-commerce, nous ne disposons pas d'un historique complet des comportements utilisateurs.
+Le systeme doit donc apprendre les relations entre:
+
+- les profils clients
+- les produits deja detenus
+- les besoins probables
+
+---
+
+## 3. Intuition du Projet: Completer le Portefeuille Client
+
+Le systeme fonctionne comme un moteur capable de completer intelligemment le portefeuille d'un client.
+
+Exemple:
+
+- un client possede deja une assurance automobile
+- possede un profil familial
+- possede un revenu stable
+- il peut avoir un besoin probable d'assurance habitation ou vie
+
+### Vue simplifiee
 
 ```mermaid
 graph LR
-    A[Profil Client] --> M(Modèle IA)
-    B[Portefeuille Actuel] --> M
-    M --> P{Prédiction}
-    P -->|Score 95%| R1[Produit Manquant A]
-    P -->|Score 80%| R2[Produit Manquant B]
+    A[Profil Client] --> M(Modele IA)
+    B[Produits Deja Detenus] --> M
+    M --> P{Prediction}
+    P -->|Score eleve| R1[Produit Recommande A]
+    P -->|Score moyen| R2[Produit Recommande B]
+```
+
+Le systeme ne cherche donc pas uniquement a predire un produit populaire.
+Il cherche a produire une recommandation coherente avec:
+
+- le profil client
+- les produits existants
+- les contraintes metier
+
+---
+
+## 4. Architecture du Systeme
+
+Le projet a ete concu comme un systeme complet d'aide a la decision assurance.
+
+L'objectif n'est pas seulement de produire un score, mais une recommandation:
+
+- coherente
+- explicable
+- tracable
+- compatible avec les regles metier
+
+Le systeme combine:
+
+1. un moteur hybride de recommandation
+2. une couche de regles metier
+3. un module de risque et de confiance
+4. une couche d'explication
+5. un systeme d'audit
+6. une orchestration agentique optionnelle
+
+### Architecture globale
+
+```mermaid
+flowchart TB
+    Input[Profil Client + Produits Detenus]
+    Input --> Stats[Baseline Statistique]
+    Input --> ML[Modele CatBoost]
+    Stats --> Hybrid[Moteur Hybride]
+    ML --> Hybrid
+    Hybrid --> Raw[Scores Produits]
+    Raw --> Rules[Regles Metier]
+    Rules --> Risk[Risque et Confiance]
+    Risk --> Explain[Explication]
+    Explain --> Audit[Audit et Tracabilite]
+    Audit --> Final[Recommandation Finale]
+    Final --> Agents[Couche Agentique Optionnelle]
 ```
 
 ---
 
-## 3. La Solution : Moteur Hybride ("Dual Engine")
+## 5. Core Recommender Engine
 
-Pour garantir à la fois la performance et la fiabilité, nous avons conçu une architecture à deux têtes.
+Le coeur du systeme repose sur un moteur hybride combinant:
 
-### Architecture du Système
+- statistiques
+- machine learning
+- regles metier
+
+### 5.1 Moteur Statistique
+
+Le moteur statistique apprend les relations frequentes entre produits.
+
+Exemple:
+
+Les clients possedant une assurance automobile possedent souvent aussi une assurance habitation.
+
+Ce moteur apporte:
+
+- robustesse
+- stabilite
+- coherence globale
+
+### 5.2 Modele Machine Learning: CatBoost
+
+Le modele CatBoost utilise:
+
+- age
+- profession
+- situation familiale
+- produits detenus
+- informations business
+
+Le modele permet de detecter des besoins plus specifiques selon le profil client.
+
+Exemple:
+
+Un jeune actif urbain peut avoir un besoin probable de protection complementaire.
+
+### 5.3 Fusion des Scores
+
+Les deux moteurs sont combines via une moyenne ponderee.
+
+Le moteur statistique apporte:
+
+- la memoire collective
+- les tendances globales
+
+CatBoost apporte:
+
+- la personnalisation
+- les signaux plus fins
+
+Cette combinaison ameliore:
+
+- la stabilite
+- la pertinence
+- la robustesse des recommandations
+
+### 5.4 Securite Metier: Anti-erreur
+
+Le systeme ne recommande jamais un produit deja detenu.
+
+Cette regle garantit:
+
+- zero recommandation incoherente
+- meilleure qualite commerciale
+- meilleure confiance dans le systeme
+
+### Vue du moteur hybride
 
 ```mermaid
 flowchart TB
     Input[Client Data] --> Stats[Moteur 1: Baseline Statistique]
-    Input --> AI[Moteur 2: CatBoost IA]
-    
-    Stats -- "Mémoire Collective" --> Hybrid((DÉCISION))
-    AI -- "Intelligence Contextuelle" --> Hybrid
-    
-    Hybrid -- "Weighted Avg" --> Final[Score Brut]
-    Final --> Rules{Filtre Anti-Cheat}
-    Rules -- "Si déjà possédé" --> Reject[Score = -Inf]
-    Rules -- "Si nouveau" --> TopK[Top-5 Recommendations]
+    Input --> AI[Moteur 2: CatBoost]
+    Stats --> Hybrid[Moteur Hybride]
+    AI --> Hybrid
+    Hybrid --> Final[Scores Produits]
+    Final --> Rules{Produit deja detenu?}
+    Rules -->|Oui| Reject[Blocage]
+    Rules -->|Non| TopK[Top-K Recommandations]
 ```
 
-### Moteur 1 : La Mémoire (Baseline Statistique)
-*   **Approche** : Probabilités Conditionnelles (Bayésien).
-*   **Logique** : *"80% des clients qui ont une assurance Auto ont aussi une assurance Habitation."*
-*   **Rôle** : Assure la cohérence de base et la robustesse (ne se trompe jamais sur les grandes tendances).
+---
 
-### Moteur 2 : L'Intelligence (CatBoost)
-*   **Approche** : Gradient Boosting sur Arbres de Décision.
-*   **Logique** : *"Ce client est jeune, vit en zone urbaine, et a un revenu élevé -> Il a besoin d'une protection Électronique, même si ce n'est pas le produit le plus populaire."*
-*   **Rôle** : Apporte la personnalisation fine et détecte les signaux faibles.
+## 6. Couche Decisionnelle
 
-### Sécurité "Anti-Cheat"
-Une règle métier stricte vient nettoyer la sortie : **Le système ne recommandera JAMAIS un produit déjà détenu.** Cela garantit zéro faux pas commercial.
+Les scores produits par le modele ne sont jamais utilises directement.
+
+Une couche decisionnelle applique ensuite:
+
+- les regles metier
+- les contraintes d'eligibilite
+- les verifications de coherence
+- les regles de securite
+- les controles de confiance
+
+Le systeme devient ainsi un veritable systeme d'aide a la decision.
+
+### Exemple de regles
+
+Le systeme peut:
+
+- bloquer certains produits selon l'age
+- empecher certaines recommandations incoherentes
+- demander une validation humaine
+- ajouter un niveau de confiance
 
 ---
 
-## 4. L'Application Streamlit : Guide des Modules
+## 7. Explication, Risque et Audit
 
-L'outil est livré sous forme d'une application Web interactive (`app/Home.py`) divisée en 5 modules, conçus pour différents utilisateurs.
+Chaque recommandation peut etre expliquee.
 
-### 1. Home (Tableau de Bord Exécutif)
-*   **Pour qui ?** : Management / Parties Prenantes.
-*   **Quoi ?** : Vue d'ensemble de la performance (KPIs comme le Hit@1), contexte du projet, et proposition de valeur.
+Le systeme indique:
 
-### 2. Business Insights (Stratégie)
-*   **Pour qui ?** : Analystes Marketing.
-*   **Fonction** : Comprendre le marché.
-    *   *Saisonnalité* : Quand vend-on le plus ?
-    *   *Segmentation* : Qui sont nos clients VIP ("Sleeping Giants") ?
-    *   *Performance* : Quelle branche vend le mieux ?
+- pourquoi un produit est recommande
+- quels signaux ont influence la decision
+- quelles regles ont ete appliquees
+- le niveau de confiance associe
 
-### 3. Client Inspector (Terrain)
-*   **Pour qui ?** : Agents d'Assurance.
-*   **Fonction** : Préparer un rendez-vous client.
-    *   Entrez un ID client -> Obtenez son Top-3 produits.
-    *   Comprenez **POURQUOI** (ex: "Recommandé car Age > 40 et Occupation = Enseignant").
+### Exemple d'explication
 
-### 4. Market Simulator (Laboratoire)
-*   **Pour qui ?** : Product Owners.
-*   **Fonction** : Tester des hypothèses ("What-If").
-    *   *"Si notre clientèle rajeunit de 10 ans, quels produits vont monter ?"*
-    *   Permet d'ajuster l'offre avant même de lancer une campagne.
+Produit recommande: Assurance Vie
 
-### 5. Methodology (Transparence)
-*   **Pour qui ?** : Data Scientists / Auditeurs.
-*   **Fonction** : Documentation technique.
-    *   Détail du protocole "Hide and Seek" (Leave-One-Out) utilisé pour valider le modèle sans données futures.
+Raisons:
+
+- profil similaire a des clients possedant deja ce produit
+- score CatBoost eleve
+- produit non deja detenu
+- regles metier validees
+
+Limites:
+
+- recommandation probabiliste
+- validation humaine possible selon le contexte
+
+### Risque et Confiance
+
+Le systeme calcule egalement:
+
+- un niveau de confiance
+- un niveau de risque
+- un besoin eventuel de revue humaine
+
+Cela evite de considerer le modele comme un systeme prenant seul les decisions.
+
+### Audit et Tracabilite
+
+Toutes les decisions peuvent etre enregistrees:
+
+- scores modeles
+- regles appliquees
+- produits bloques
+- explications generees
+- version des modeles
+
+Cela permet:
+
+- transparence
+- suivi
+- reproductibilite
+- analyse des erreurs
 
 ---
 
-## 5. Installation & Démarrage
+## 8. Couche Agentique (Agentic AI)
 
-### Pré-requis Technique
-*   Python 3.8+
-*   Pip
+Le systeme peut egalement etre pilote par des agents IA construits avec SmolAgents.
 
-### Installation Rapide
+Les agents ne prennent jamais directement les decisions metier.
+
+Leur role est:
+
+- orchestrer les etapes
+- appeler les outils deterministes
+- generer des rapports
+- expliquer les decisions
+- coordonner les validations
+
+### Architecture Agentique
+
+```mermaid
+flowchart LR
+    Manager[Manager Agent]
+    Manager --> Profiling[Profiling Agent]
+    Manager --> Recommendation[Recommendation Agent]
+    Manager --> Policy[Policy Agent]
+    Manager --> Risk[Risk Agent]
+    Manager --> Explain[Explanation Agent]
+    Manager --> Audit[Audit Agent]
+```
+
+### Principe important
+
+Le systeme suit une regle simple:
+
+Les agents orchestrent.
+Le moteur deterministe decide.
+
+Les modeles de langage ne modifient jamais:
+
+- les scores
+- les regles metier
+- les contraintes de securite
+
+---
+
+## 9. Recherche Produit et Contextualisation
+
+Le systeme possede egalement une couche de recherche produit permettant:
+
+- d'enrichir les explications
+- de retrouver des informations metier
+- d'ajouter du contexte produit
+
+Le projet inclut:
+
+- recherche textuelle
+- BM25
+- recherche vectorielle
+- reranking
+
+Cette couche ameliore:
+
+- la qualite des explications
+- la contextualisation
+- la pertinence metier
+
+---
+
+## 10. Evaluation du Systeme
+
+Le projet contient plusieurs modules d'evaluation.
+
+### Evaluation des recommandations
+
+Mesures utilisees:
+
+- Hit@K
+- MAP@K
+- NDCG
+- couverture
+- diversite
+
+### Evaluation des regles metier
+
+Le systeme verifie:
+
+- qu'aucun produit deja detenu n'est recommande
+- que les regles metier sont respectees
+- que les produits interdits sont bloques
+
+### Evaluation des agents
+
+Les agents sont evalues sur:
+
+- utilisation correcte des outils
+- coherence des etapes
+- erreurs de raisonnement
+- temps de reponse
+
+---
+
+## 11. Application Streamlit
+
+Le projet est livre avec une application Streamlit interactive.
+
+### Home
+
+Vue d'ensemble du projet:
+
+- objectifs
+- performances
+- architecture
+- indicateurs cles
+
+### Business Insights
+
+Analyse metier:
+
+- segmentation clients
+- tendances produits
+- analyses marketing
+
+### Client Inspector
+
+Analyse detaillee d'un client:
+
+- produits detenus
+- recommandations
+- explications
+- niveau de confiance
+
+### Market Simulator
+
+Simulation de scenarios metier:
+
+- evolution du profil client
+- impact sur les recommandations
+- analyse what-if
+
+### Methodology
+
+Documentation technique:
+
+- validation
+- strategie d'evaluation
+- protocole experimental
+
+### DecisionFlow AI
+
+Execution complete du pipeline decisionnel:
+
+- profil client
+- recommandations
+- regles appliquees
+- risque
+- explications
+- audit
+
+### Agent Inspector
+
+Interaction avec les agents IA:
+
+- Hugging Face
+- Ollama
+- orchestration agentique
+- traces des outils utilises
+
+### Evaluation
+
+Dashboard d'evaluation:
+
+- qualite des recommandations
+- conformite metier
+- qualite des explications
+- performances agents
+
+---
+
+## 12. Structure du Projet
+
+```text
+src/
+|-- decisionflow/
+|-- agents/
+|-- retrieval/
+|-- evaluation/
+|-- monitoring/
+app/
+|-- Home.py
+|-- pages/
+data/
+|-- evaluation/
+|-- product_knowledge/
+tests/
+notebooks/
+artifacts/
+scripts/
+```
+
+---
+
+## 13. Installation
+
+Prerequis:
+
+- Python 3.8+
+- pip
+
+Installation:
+
 ```bash
-# 1. Cloner le dépôt
-git clone <url-du-repo>
+git clone <repo_url>
 cd insurance_recommender
-
-# 2. Installer les dépendances
 pip install -r requirements.txt
 ```
 
-### Lancer l'Application
+Lancer l'application:
+
 ```bash
 streamlit run app/Home.py
 ```
-Une fois lancé, votre navigateur s'ouvrira automatiquement sur : `http://localhost:8501`.
+
+Puis ouvrir:
+
+http://localhost:8501
 
 ---
 
-## 6. Extension : DecisionFlow AI & Agentic Layer
+## 14. Dependances Optionnelles
 
-Cette nouvelle version du projet n'est plus seulement un moteur de
-recommandation.  Elle intègre une **couche décisionnelle** qui
-structurera l'ensemble du pipeline d'aide à la décision.
-
-### 6.1 Architecture DecisionFlow
-
-Le module `src/decisionflow` encapsule toute la logique
-non‑apprenante :
-
-1. **`schemas.py`** : définit des dataclasses pour représenter un
-   profil client, des recommandations, des décisions de politique,
-   des explications et des traces d'audit.
-2. **`profile_builder.py`** : transforme les données brutes en
-   `ClientProfile` standardisé (extraction des produits possédés,
-   détection de la qualité des données, inférence d'un segment basique).
-3. **`recommendation_context.py`** : appelle le moteur hybride
-   existant (baseline + CatBoost) et renvoie des scores bruts
-   structurés.
-4. **`policy_rules.py`** : applique des règles métier et des
-   contraintes réglementaires définies dans `data/product_knowledge/*.yaml`.
-5. **`risk_scoring.py`** : calcule des indicateurs de confiance et
-   demande une revue manuelle en cas d'incertitude.
-6. **`explanation.py`** : génère des explications factuelles à partir
-   des données et des règles (sans halluciner de raisons).
-7. **`audit.py`** : enregistre chaque recommandation dans un log JSON
-   afin d'assurer la traçabilité.
-8. **`decision_engine.py`** : orchestre l'ensemble des étapes et
-   renvoie un dictionnaire complet prêt à être affiché.
-
-### 6.2 Couche Agentique (optionnelle)
-
-Le répertoire `src/agents` expose des outils (`tools.py`) et des
-agents (`manager.py`) pour interfacer la logique déterministe avec des
-LLM via la bibliothèque [smolagents](https://github.com/smol-ai/smolagents).
-Un **manager** coordonne des sous‑agents spécialisés (recommandation,
-risque, explication, audit).  Les agents n'inventent jamais de
-données : ils appellent les fonctions déterministes définies dans le
-code.
-
-### 6.3 Retrieval & Evaluation
-
-Le sous‑package `src/retrieval` offre une base pour enrichir les
-explications avec des descriptions produits (simple recherche par
-mots‑clés).  Le sous‑package `src/evaluation` contient des fonctions
-d'évaluation (Hit@K, MRR, conformité aux règles, etc.) et un
-`eval_runner` pour lancer des évaluations complètes à partir de
-datasets de benchmarking.
-
-### 6.4 Nouvelle UI Streamlit
-
-Trois nouvelles pages ont été ajoutées :
-
-* **DecisionFlow AI** (`app/pages/6_DecisionFlow_AI.py`) : lance le
-  pipeline complet sur un ID client et affiche les recommandations,
-  le niveau de risque et l'explication.
-* **Agent Inspector** (`app/pages/7_Agent_Inspector.py`) : permet de
-  dialoguer avec le manager agent en langage naturel (si smolagents
-  est installé).
-* **Evaluation** (`app/pages/8_Evaluation.py`) : exécute des tests
-  hors ligne et affiche les métriques.
-
----
-
-## 7. Dépendances Supplémentaires
-
-Pour activer l'agentic layer et la recherche hybride, installez
-également :
+Pour activer les agents IA et la recherche avancee:
 
 ```bash
-pip install smolagents[toolkit] huggingface_hub litellm sentence-transformers rank-bm25 faiss-cpu pyyaml
+pip install smolagents[toolkit]
+pip install huggingface_hub
+pip install litellm
+pip install sentence-transformers
+pip install rank-bm25
+pip install faiss-cpu
+pip install pyyaml
 ```
-
-Ces dépendances sont optionnelles : la partie déterministe du système
-fonctionne toujours avec les dépendances de base listées dans
-``requirements.txt``.
-
 
 ---
 
-**Auteur** : Goua Beedi
+## 15. Principes de Conception
 
+Le systeme suit plusieurs principes importants:
+
+- architecture deterministe
+- separation claire entre ML et regles metier
+- explication systematique
+- auditabilite
+- securite metier
+- orchestration controlee des agents IA
+
+---
+
+## 16. Limites Actuelles
+
+Le projet reste une demonstration technique.
+
+Certaines parties peuvent encore etre ameliorees:
+
+- retrieval avance
+- donnees temps reel
+- monitoring production
+- orchestration distribuee
+- optimisation des couts agents
+
+---
+
+## 17. Auteur
+
+Goua Beedi

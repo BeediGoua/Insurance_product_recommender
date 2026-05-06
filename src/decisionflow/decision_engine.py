@@ -1,21 +1,4 @@
-"""
-High level orchestrator for the DecisionFlow system.
-
-This module exposes functions to run the full insurance decision flow
-either from a client identifier or from an already constructed
-``ClientProfile``.  The flow consists of:
-
-1. Building or receiving a client profile.
-2. Generating recommendations using the ML engine.
-3. Applying policy and eligibility rules.
-4. Computing risk/confidence metrics.
-5. Generating human explanations.
-6. Creating and saving an audit record.
-
-The returned value is a serialisable dictionary containing all of the
-above outputs.  Users of the library or the Streamlit UI can rely on
-this module to encapsulate the decision logic in a single call.
-"""
+"""Orchestrate the full DecisionFlow pipeline from profile to audit output."""
 
 from __future__ import annotations
 
@@ -33,14 +16,18 @@ from .audit import create_audit_record, save_audit_record
 def run_decisionflow_for_client(client_id: str, topk: int = 5, use_hybrid: bool = True) -> Dict[str, Any]:
     """Run the full DecisionFlow pipeline for a given client ID.
 
-    If the client cannot be found in any underlying dataset a minimal
-    profile will be constructed.  For demonstration purposes the
-    function does not attempt to read from disk.  Real applications
-    should supply a row of client attributes to
-    :func:`build_client_profile`.
+    The client is looked up in the real dataset via
+    :mod:`src.decisionflow.client_repository`.  If the client is not
+    found a ``ValueError`` is raised so that callers can surface a
+    meaningful error to the user.
     """
-    # Build a minimal profile – this could be extended to fetch data
-    profile = build_client_profile(client_id)
+    from src.decisionflow.client_repository import get_client_row
+    row, product_cols = get_client_row(client_id)
+    profile = build_client_profile(
+        client_id=client_id,
+        row=row,
+        product_cols=product_cols,
+    )
     return run_decisionflow_from_profile(profile, topk=topk, use_hybrid=use_hybrid)
 
 

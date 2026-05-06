@@ -1,16 +1,4 @@
-"""
-Functions for constructing a :class:`~decisionflow.schemas.ClientProfile` from
-raw data.  In the existing project the raw data comes from CSV files
-loaded via ``src/data/io``, but the functions here do not depend on
-those internals – callers are expected to supply whatever information
-they have about a client.
-
-This module provides a thin layer of validation and inference on top of
-the raw user attributes.  For example it can infer a client segment
-based on their age and occupation, detect missing critical fields and
-normalise product lists.  Keeping these transformations in one place
-allows the decision engine to remain simple and focused on orchestration.
-"""
+"""Build and enrich ClientProfile objects from raw client rows."""
 
 from __future__ import annotations
 

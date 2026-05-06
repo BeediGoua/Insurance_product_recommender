@@ -1,12 +1,4 @@
-"""
-Tools exposed to language model agents.
-
-Each tool is decorated with ``@tool`` from smolagents.  Tools are
-lightweight wrappers around deterministic functions defined in the
-``decisionflow`` package.  They must not implement any logic on their
-own, they simply bridge the gap between natural language requests and
-Python code.
-"""
+"""Expose deterministic DecisionFlow functions as agent tools."""
 
 from __future__ import annotations
 
@@ -178,3 +170,48 @@ def create_audit_tool(client_profile_json: str, recommendations_json: str, polic
     audit_record = create_audit_record(profile, rec, policy, explanations, risk)
     save_audit_record(audit_record)
     return audit_record.timestamp
+
+
+@tool
+def get_client_profile_tool(client_id: str) -> str:
+    """Build a structured client profile from the real dataset.
+
+    Args:
+        client_id: Client identifier.
+
+    Returns:
+        JSON string of the ClientProfile.
+    """
+    from src.decisionflow.client_repository import get_client_row
+    from src.decisionflow.profile_builder import build_client_profile as _build
+    row, product_cols = get_client_row(client_id)
+    profile = _build(client_id, row=row, product_cols=product_cols)
+    return json.dumps(profile.__dict__, default=str)
+
+
+@tool
+def run_recommender_tool(client_profile_json: str) -> str:
+    """Run the deterministic recommender from a structured client profile.
+
+    Args:
+        client_profile_json: ClientProfile as JSON string.
+
+    Returns:
+        JSON string of the RecommendationResult.
+    """
+    from src.decisionflow.schemas import ClientProfile
+    from src.decisionflow.recommendation_context import run_catboost_model, run_statistical_baseline
+    data = json.loads(client_profile_json)
+    profile = ClientProfile(
+        client_id=data.get("client_id"),
+        segment=data.get("segment"),
+        current_products=data.get("current_products", []),
+        needs_signals=data.get("needs_signals", []),
+        data_quality=data.get("data_quality"),
+        extra_info=data.get("extra_info", {}),
+    )
+    rec = run_catboost_model(profile, topk=5)
+    if not rec.top_k:
+        rec = run_statistical_baseline(profile, topk=5)
+    return json.dumps(rec.__dict__, default=str)
+

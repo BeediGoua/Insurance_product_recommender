@@ -19,7 +19,17 @@ topk = st.slider("Number of recommendations", min_value=1, max_value=10, value=3
 
 if st.button("Run DecisionFlow"):
     with st.spinner("Running DecisionFlow..."):
-        result = run_decisionflow_for_client(client_id, topk=topk, use_hybrid=use_hybrid)
+        try:
+            result = run_decisionflow_for_client(client_id, topk=topk, use_hybrid=use_hybrid)
+        except ValueError as e:
+            st.error(f"Client lookup failed: {e}")
+            st.stop()
+        except FileNotFoundError as e:
+            st.error(f"Dataset not found: {e}")
+            st.stop()
+        except Exception as e:
+            st.error(f"Unexpected error: {e}")
+            st.stop()
     # Display client profile
     st.subheader("Client Profile")
     profile = result.get("client_profile")

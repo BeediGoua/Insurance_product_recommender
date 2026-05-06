@@ -1,57 +1,77 @@
-"""
-Simple keyword based product retrieval.
-
-This module implements a naive bag‑of‑words search over the product
-catalog.  It is designed to illustrate how retrieval can be used to
-provide context to explanations, but it is not intended for
-production use.  For better performance and relevance consider using
-BM25 (via ``rank_bm25``) or vector embeddings (via sentence
-transformers and FAISS or Chroma).
-"""
+"""Retrieve products with BM25 scoring and a keyword-overlap fallback."""
 
 from __future__ import annotations
 
-from typing import List, Tuple
+from typing import List, Dict, Any
 import re
 
 from .product_catalog import get_product_catalog
 
 
 def _tokenize(text: str) -> List[str]:
-    return re.findall(r"\w+", text.lower()) if text else []
+    return re.findall(r"\w+", str(text).lower()) if text else []
 
 
-def search_products(query: str, topk: int = 3) -> List[Tuple[str, float]]:
-    """Search the product catalog using a simple token overlap metric.
+def _build_corpus(catalog) -> List[List[str]]:
+    docs = []
+    for _, row in catalog.iterrows():
+        text = " ".join([
+            str(row.get("product_name", "")),
+            str(row.get("description", "")),
+            str(row.get("target_needs", "")),
+            str(row.get("typical_customer", "")),
+            str(row.get("business_notes", "")),
+        ])
+        docs.append(_tokenize(text))
+    return docs
 
-    Parameters
-    ----------
-    query: str
-        The free text query, e.g. "family protection".
-    topk: int
-        Number of results to return.
+
+def bm25_search(query: str, topk: int = 5) -> List[Dict[str, Any]]:
+    """Search the product catalog using BM25 (rank_bm25).
+
+    Falls back to keyword overlap scoring if rank_bm25 is not installed.
 
     Returns
     -------
-    List[Tuple[str, float]]
-        A list of tuples ``(product_code, score)`` sorted by descending
-        score.  The score is the fraction of query tokens appearing in
-        the product name or description.
+    List[Dict]
+        Each dict has ``product_code``, ``score_bm25`` and ``product_info``.
     """
     catalog = get_product_catalog()
     if catalog.empty or not query:
         return []
-    q_tokens = _tokenize(query)
-    results: List[Tuple[str, float]] = []
-    for _, row in catalog.iterrows():
-        text = f"{row.get('product_name', '')} {row.get('description', '')}"
-        doc_tokens = _tokenize(text)
-        if not doc_tokens:
-            score = 0.0
-        else:
-            matches = sum(1 for t in q_tokens if t in doc_tokens)
-            score = matches / len(q_tokens)
-        if score > 0:
-            results.append((row["product_code"], score))
-    results.sort(key=lambda x: x[1], reverse=True)
-    return results[:topk]
+
+    corpus = _build_corpus(catalog)
+    query_tokens = _tokenize(query)
+
+    try:
+        from rank_bm25 import BM25Okapi
+        bm25 = BM25Okapi(corpus)
+        scores = bm25.get_scores(query_tokens)
+    except ImportError:
+        # Fallback: fraction of query tokens present in doc
+        scores = []
+        for doc in corpus:
+            matches = sum(1 for t in query_tokens if t in doc)
+            scores.append(matches / max(len(query_tokens), 1))
+
+    import numpy as np
+    scores = list(scores)
+    ranked_idx = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)[:topk]
+
+    results: List[Dict[str, Any]] = []
+    for idx in ranked_idx:
+        row = catalog.iloc[idx].to_dict()
+        results.append({
+            "product_code": row["product_code"],
+            "score_bm25": float(scores[idx]),
+            "product_info": row,
+        })
+    return results
+
+
+# Keep backward-compatible alias
+def search_products(query: str, topk: int = 3):
+    """Backward-compatible wrapper returning (product_code, score) tuples."""
+    results = bm25_search(query, topk=topk)
+    return [(r["product_code"], r["score_bm25"]) for r in results]
+

@@ -1,12 +1,4 @@
-"""
-Build and run multi‑agent orchestration for insurance recommendation.
-
-Agents are composed hierarchically using smolagents' ``CodeAgent``.  A
-top‑level manager agent delegates tasks to specialised sub‑agents such
-as the decision agent (which calls the deterministic DecisionFlow
-pipeline) and the explanation agent.  If smolagents is not installed
-the factory functions will raise an ImportError.
-"""
+"""Build and run hierarchical agents for insurance recommendation workflows."""
 
 from __future__ import annotations
 
@@ -25,6 +17,8 @@ from .tools import (
     compute_risk_tool,
     generate_explanation_tool,
     create_audit_tool,
+    get_client_profile_tool,
+    apply_policy_rules_tool,
 )
 
 
@@ -98,21 +92,51 @@ def build_audit_agent(provider: str = "huggingface", model_id: Optional[str] = N
     )
 
 
+def build_profiling_agent(provider: str = "huggingface", model_id: Optional[str] = None):
+    """Create an agent responsible for building client profiles from real data."""
+    CodeAgent = _import_codeagent()
+    model = build_model(provider, model_id)
+    return CodeAgent(
+        model=model,
+        tools=[get_client_profile_tool],
+        name="profiling_agent",
+        description="Builds a structured client profile from the real dataset. Must call get_client_profile_tool. Must not invent missing fields. Returns JSON.",
+        max_steps=5,
+        verbosity_level=1,
+    )
+
+
+def build_policy_agent(provider: str = "huggingface", model_id: Optional[str] = None):
+    """Create an agent that applies business and eligibility rules."""
+    CodeAgent = _import_codeagent()
+    model = build_model(provider, model_id)
+    return CodeAgent(
+        model=model,
+        tools=[apply_policy_rules_tool],
+        name="policy_agent",
+        description="Applies insurance business and eligibility rules to recommendations. Must call apply_policy_rules_tool. Must never allow already-owned products. Reports blocked products and reasons.",
+        max_steps=5,
+        verbosity_level=1,
+    )
+
+
 def build_manager_agent(provider: str = "huggingface", model_id: Optional[str] = None):
     """Create the top level manager agent which orchestrates sub‑agents."""
     CodeAgent = _import_codeagent()
     model = build_model(provider, model_id)
+    profiling_agent = build_profiling_agent(provider, model_id)
     rec_agent = build_recommendation_agent(provider, model_id)
+    policy_agent = build_policy_agent(provider, model_id)
     risk_agent = build_risk_agent(provider, model_id)
     expl_agent = build_explanation_agent(provider, model_id)
     audit_agent = build_audit_agent(provider, model_id)
     return CodeAgent(
         model=model,
         tools=[],
-        managed_agents=[rec_agent, risk_agent, expl_agent, audit_agent],
+        managed_agents=[profiling_agent, rec_agent, policy_agent, risk_agent, expl_agent, audit_agent],
         name="insurance_manager_agent",
-        description="Coordinates insurance recommendation, risk assessment, explanation and audit.",
-        max_steps=10,
+        description="Coordinates profiling, recommendation, policy validation, risk checks, explanation and audit.",
+        max_steps=12,
         verbosity_level=2,
     )
 
