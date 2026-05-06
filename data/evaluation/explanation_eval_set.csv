@@ -1,0 +1,2 @@
+client_id,recommended_product,expected_reasons,forbidden_explanations
+C123,Life,"high predicted relevance; not owned; segment adult",""

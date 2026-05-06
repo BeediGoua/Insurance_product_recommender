@@ -1,0 +1,2 @@
+client_id,age,sex,marital_status,branch_code,occupation_code,occupation_category_code,P1,P2,P3,P4
+C123,42,M,S,BR01,OC10,OCAT1,1,0,0,0

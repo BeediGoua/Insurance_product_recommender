@@ -1,0 +1,2 @@
+client_id,expected_product,acceptable_products,forbidden_products,reason
+C123,Life,Life;Home,,Sample expectation based on synthetic data

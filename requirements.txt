@@ -1,0 +1,14 @@
+pandas
+numpy
+matplotlib
+scikit-learn
+catboost
+streamlit
+pyarrow
+pyyaml
+smolagents[toolkit]
+huggingface_hub
+litellm
+sentence-transformers
+rank-bm25
+faiss-cpu
